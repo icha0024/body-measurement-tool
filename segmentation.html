@@ -582,9 +582,9 @@
                 const cmPerPixel = userHeight / upperBodyHeightPixels;
 
                 // Find waist width (narrowest point in the waist region)
-                // Focus on lower torso area (40-70% down from top of visible body)
-                const waistRegionStart = minY + Math.floor(upperBodyHeightPixels * 0.4);
-                const waistRegionEnd = minY + Math.floor(upperBodyHeightPixels * 0.7);
+                // Focus on lower torso area (80-90% down from top of visible body - actual waist location)
+                const waistRegionStart = minY + Math.floor(upperBodyHeightPixels * 0.8);
+                const waistRegionEnd = minY + Math.floor(upperBodyHeightPixels * 0.9);
                 let minWaistWidth = width;
                 let waistFound = false;
                 let waistY = waistRegionStart; // Track which line gave us the narrowest measurement
@@ -664,18 +664,31 @@
                 if (this.currentMeasurement && this.currentMeasurement.waistY && this.currentMeasurement.bounds) {
                     const { waistY, bounds } = this.currentMeasurement;
                     
-                    maskCtx.strokeStyle = "rgba(255, 0, 0, 0.8)"; // Red line
-                    maskCtx.lineWidth = 3;
-                    maskCtx.beginPath();
-                    maskCtx.moveTo(bounds.minX, waistY);
-                    maskCtx.lineTo(bounds.maxX, waistY);
-                    maskCtx.stroke();
+                    // Find the actual left and right edges of the body at the waist line
+                    let leftEdge = width, rightEdge = 0;
+                    for (let x = bounds.minX; x <= bounds.maxX; x++) {
+                        const index = waistY * width + x;
+                        if (maskData[index] === 1) {
+                            leftEdge = Math.min(leftEdge, x);
+                            rightEdge = Math.max(rightEdge, x);
+                        }
+                    }
                     
-                    // Add text label
-                    maskCtx.fillStyle = "red";
-                    maskCtx.font = "16px Arial";
-                    maskCtx.textAlign = "center";
-                    maskCtx.fillText("Waist Measurement", (bounds.minX + bounds.maxX) / 2, waistY - 10);
+                    // Draw line only within the actual body outline
+                    if (rightEdge > leftEdge) {
+                        maskCtx.strokeStyle = "rgba(255, 0, 0, 0.9)"; // Red line
+                        maskCtx.lineWidth = 4;
+                        maskCtx.beginPath();
+                        maskCtx.moveTo(leftEdge, waistY);
+                        maskCtx.lineTo(rightEdge, waistY);
+                        maskCtx.stroke();
+                        
+                        // Add text label
+                        maskCtx.fillStyle = "red";
+                        maskCtx.font = "16px Arial";
+                        maskCtx.textAlign = "center";
+                        maskCtx.fillText("Waist Measurement", (leftEdge + rightEdge) / 2, waistY - 10);
+                    }
                 }
                 
                 // Draw on segmentation canvas
