@@ -335,6 +335,13 @@
                 this.canvas.height = this.video.videoHeight;
                 this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
                 
+                // Set canvas CSS size to match aspect ratio
+                const aspectRatio = this.video.videoWidth / this.video.videoHeight;
+                this.canvas.style.width = '100%';
+                this.canvas.style.height = 'auto';
+                this.canvas.style.maxHeight = '70vh';
+                this.canvas.style.objectFit = 'contain';
+                
                 this.capturedImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                 
                 this.video.classList.add('d-none');
