@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Body Measurement Tool</title>
+    <title>Body Measurement Tool - Precision Mode</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-segmentation"></script>
     <style>
         .back-btn {
             position: fixed;
@@ -54,6 +54,31 @@
             box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
             color: white;
         }
+
+        .precision-badge {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 1000;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); min-height: 100vh;">
@@ -66,8 +91,9 @@
         <!-- Home Screen -->
         <div id="homeScreen" class="container">
             <div class="text-center mb-5">
-                <h1 class="display-4 text-white mb-3">Body Measurement Tool</h1>
-                <p class="lead text-white">AI-powered body measurements using your camera</p>
+                <h1 class="display-4 text-white mb-2">Body Measurement Tool</h1>
+                <div class="precision-badge mb-3">Precision Mode</div>
+                <p class="lead text-white">Advanced AI body segmentation for accurate measurements</p>
             </div>
             
             <div class="row justify-content-center">
@@ -77,15 +103,20 @@
                             <img src="measurement-guide.png" alt="Measurement Guide - Shows proper posture for body measurement" class="img-fluid rounded mb-4" style="max-height: 300px;">
                         </div>
 
-                        <h5 class="text-dark mb-3">How it works:</h5>
+                        <h5 class="text-dark mb-3">Precision Measurement Features:</h5>
                         <ul class="text-dark">
-                            <li><strong>Upper body positioning:</strong> Only your upper body needs to be in frame (from slightly below waist to top of head)</li>
-                            <li><strong>Height reference:</strong> Enter the height of the body portion visible in your photo - NOT your full height</li>
-                            <li>Uses AI to detect your body pose and calculate measurements</li>
-                            <li>Measures shoulder and waist width automatically</li>
-                            <li>Works with camera or uploaded photos</li>
+                            <li><strong>True waist detection:</strong> Finds the actual narrowest point of your torso</li>
+                            <li><strong>Accurate shoulder width:</strong> Measures from outer edge to outer edge</li>
+                            <li><strong>Body segmentation:</strong> Uses advanced AI to detect your body outline</li>
+                            <li><strong>Upper body positioning:</strong> Only your upper body needs to be in frame</li>
+                            <li><strong>Height reference:</strong> Enter the height of the body portion visible in your photo</li>
                             <li>All processing happens in your browser after initial model download</li>
                         </ul>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> This version uses larger AI models (~15MB) for higher accuracy but may take longer to load initially.
+                        </div>
 
                         <div class="text-center mt-4">
                             <button id="startCamera" class="btn btn-custom btn-lg px-5 py-3 me-3">
@@ -94,14 +125,14 @@
                             <button id="uploadPhoto" class="btn btn-custom btn-lg px-5 py-3 me-3">
                                 <i class="fas fa-upload me-2"></i>Upload Photo
                             </button>
-                            <button id="viewHistory" class="btn btn-outline-primary btn-lg px-5 py-3">
+                            <button id="viewHistory" class="btn btn-outline-light btn-lg px-5 py-3">
                                 <i class="fas fa-history me-2"></i>View History
                             </button>
                         </div>
 
                         <div class="text-center mt-3">
-                            <a href="segmentation.html" class="btn btn-outline-light">
-                                <i class="fas fa-search-plus me-2"></i>Advanced Measurement (More Accurate)
+                            <a href="index.html" class="btn btn-outline-secondary">
+                                <i class="fas fa-tachometer-alt me-2"></i>Switch to Quick Mode
                             </a>
                         </div>
                     </div>
@@ -113,12 +144,25 @@
         <div id="cameraScreen" class="container d-none">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
-                    <div class="measurement-card p-4">
-                        <h4 class="text-center mb-4">Camera Measurement</h4>
+                    <div class="measurement-card p-4 position-relative">
+                        <div id="loadingOverlay" class="loading-overlay d-none">
+                            <div class="text-center">
+                                <div class="spinner-border mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div>Processing image...</div>
+                            </div>
+                        </div>
+                        
+                        <h4 class="text-center mb-4">
+                            Precision Camera Measurement
+                            <span class="precision-badge ms-2">Advanced AI</span>
+                        </h4>
                         
                         <div class="text-center position-relative">
                             <video id="video" autoplay playsinline class="rounded w-100" style="max-height: 70vh;"></video>
                             <canvas id="canvas" class="w-100 rounded d-none" style="max-height: 70vh;"></canvas>
+                            <canvas id="segmentationCanvas" class="w-100 rounded d-none" style="max-height: 70vh; opacity: 0.7; position: absolute; top: 0; left: 50%; transform: translateX(-50%);"></canvas>
                             <h1 id="countdown" class="position-absolute top-50 start-50 translate-middle display-1 d-none text-white" style="text-shadow: 0 0 10px black; z-index: 1000;">5</h1>
                         </div>
 
@@ -128,20 +172,20 @@
                                 <input type="number" id="userHeight" class="form-control form-control-lg rounded-pill px-4 mx-auto"
                                        min="50" max="250" placeholder="e.g. 85" required style="max-width: 200px;">
                             </div>
-                            <button id="processPhoto" class="btn btn-custom mt-3">Process Measurement</button>
+                            <button id="processPhoto" class="btn btn-custom mt-3">Analyze Body Shape</button>
                         </div>
 
                         <div id="measurementResult" class="mt-4 d-none">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="measurement-item">
-                                        <h6>Shoulder Width</h6>
+                                        <h6>Shoulder Width <small class="text-success">(edge-to-edge)</small></h6>
                                         <span id="shoulderWidth" class="fs-4 fw-bold text-success">--</span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="measurement-item">
-                                        <h6>Waist Width</h6>
+                                        <h6>Waist Width <small class="text-success">(narrowest point)</small></h6>
                                         <span id="waistWidth" class="fs-4 fw-bold text-success">--</span>
                                     </div>
                                 </div>
@@ -161,8 +205,20 @@
         <div id="uploadScreen" class="container d-none">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
-                    <div class="measurement-card p-5">
-                        <h4 class="text-center mb-4">Upload Photo for Measurement</h4>
+                    <div class="measurement-card p-5 position-relative">
+                        <div id="uploadLoadingOverlay" class="loading-overlay d-none">
+                            <div class="text-center">
+                                <div class="spinner-border mb-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div>Analyzing body shape...</div>
+                            </div>
+                        </div>
+
+                        <h4 class="text-center mb-4">
+                            Upload Photo for Precision Measurement
+                            <span class="precision-badge ms-2">Advanced AI</span>
+                        </h4>
                         
                         <div class="text-center">
                             <div class="mb-4">
@@ -171,18 +227,20 @@
                                 </label>
                                 <input type="file" id="imageUpload" accept="image/*" class="d-none">
                             </div>
-                            <p class="text-muted">Select a photo where your upper body is clearly visible</p>
+                            <p class="text-muted">Select a photo where your upper body is clearly visible against a simple background</p>
                         </div>
 
                         <div id="uploadPreview" class="text-center d-none">
                             <img id="previewImage" class="img-fluid rounded mb-3" style="max-height: 400px;">
+                            <canvas id="uploadCanvas" class="img-fluid rounded mb-3 d-none" style="max-height: 400px;"></canvas>
+                            <canvas id="uploadSegmentationCanvas" class="img-fluid rounded mb-3 d-none" style="max-height: 400px; opacity: 0.7; position: absolute; top: 0; left: 50%; transform: translateX(-50%);"></canvas>
                             
                             <div class="my-3">
                                 <label for="uploadHeight" class="form-label">Height of upper body visible in photo (cm):</label>
                                 <input type="number" id="uploadHeight" class="form-control mx-auto" style="max-width: 200px;" min="50" max="250" placeholder="e.g. 85">
                             </div>
                             
-                            <button id="processUpload" class="btn btn-custom">Process Photo</button>
+                            <button id="processUpload" class="btn btn-custom">Analyze Body Shape</button>
                         </div>
                     </div>
                 </div>
@@ -195,14 +253,17 @@
                 <div class="col-lg-10">
                     <div class="measurement-card p-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4>Measurement History</h4>
+                            <div>
+                                <h4>Measurement History</h4>
+                                <span class="precision-badge">Precision Measurements</span>
+                            </div>
                             <button id="clearHistory" class="btn btn-outline-danger">
                                 <i class="fas fa-trash me-2"></i>Clear History
                             </button>
                         </div>
                         
                         <div id="historyList">
-                            <p class="text-center text-muted">No measurements recorded yet</p>
+                            <p class="text-center text-muted">No precision measurements recorded yet</p>
                         </div>
                     </div>
                 </div>
@@ -211,16 +272,19 @@
     </div>
 
     <script>
-        class BodyMeasurementTool {
+        class PrecisionMeasurementTool {
             constructor() {
-                this.detector = null;
+                this.segmenter = null;
                 this.video = null;
                 this.canvas = null;
                 this.ctx = null;
+                this.segmentationCanvas = null;
+                this.segmentationCtx = null;
                 this.stream = null;
                 this.countdownInterval = null;
                 this.capturedImageData = null;
                 this.currentMeasurement = null;
+                this.isModelLoading = false;
                 
                 this.initializeElements();
                 this.setupEventListeners();
@@ -232,6 +296,8 @@
                 this.video = document.getElementById('video');
                 this.canvas = document.getElementById('canvas');
                 this.ctx = this.canvas.getContext('2d');
+                this.segmentationCanvas = document.getElementById('segmentationCanvas');
+                this.segmentationCtx = this.segmentationCanvas.getContext('2d');
             }
 
             setupEventListeners() {
@@ -255,16 +321,26 @@
             }
 
             async loadModel() {
+                if (this.isModelLoading || this.segmenter) return;
+                
+                this.isModelLoading = true;
+                console.log("Loading MediaPipe Selfie Segmentation model...");
+                
                 try {
-                    this.detector = await poseDetection.createDetector(
-                        poseDetection.SupportedModels.MoveNet, {
-                            modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
+                    this.segmenter = await bodySegmentation.createSegmenter(
+                        bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation,
+                        {
+                            runtime: 'mediapipe',
+                            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation',
+                            modelType: 'general'
                         }
                     );
-                    console.log("MoveNet model loaded successfully");
+                    console.log("Segmentation model loaded successfully!");
                 } catch (error) {
-                    console.error("Error loading model:", error);
-                    alert("Failed to load AI model. Please refresh the page and try again.");
+                    console.error("Failed to load segmentation model:", error);
+                    alert("Failed to load AI model. Please refresh and try again.");
+                } finally {
+                    this.isModelLoading = false;
                 }
             }
 
@@ -308,6 +384,7 @@
                     this.video.srcObject = this.stream;
                     this.video.classList.remove('d-none');
                     this.canvas.classList.add('d-none');
+                    this.segmentationCanvas.classList.add('d-none');
                     
                     // Start countdown after camera initializes
                     setTimeout(() => this.startCountdown(), 1000);
@@ -339,8 +416,10 @@
             capturePhoto() {
                 this.canvas.width = this.video.videoWidth;
                 this.canvas.height = this.video.videoHeight;
-                this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                this.segmentationCanvas.width = this.video.videoWidth;
+                this.segmentationCanvas.height = this.video.videoHeight;
                 
+                this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
                 this.capturedImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                 
                 this.video.classList.add('d-none');
@@ -355,6 +434,7 @@
                 document.getElementById('measurementResult').classList.add('d-none');
                 document.getElementById('saveMeasurement').classList.add('d-none');
                 document.getElementById('userHeight').value = '';
+                this.segmentationCanvas.classList.add('d-none');
                 
                 this.startCamera();
             }
@@ -367,17 +447,26 @@
                     return;
                 }
 
+                if (!this.segmenter) {
+                    alert("AI model is still loading. Please wait a moment and try again.");
+                    return;
+                }
+
                 document.getElementById('heightInput').classList.add('d-none');
+                document.getElementById('loadingOverlay').classList.remove('d-none');
                 
                 try {
-                    const measurements = await this.analyzePose(this.canvas, userHeight);
+                    const measurements = await this.analyzeBodySegmentation(this.canvas, userHeight);
                     if (measurements) {
                         this.displayMeasurements(measurements);
                         this.currentMeasurement = measurements;
+                        this.segmentationCanvas.classList.remove('d-none');
                     }
                 } catch (error) {
                     alert("Error processing photo: " + error.message);
                     console.error(error);
+                } finally {
+                    document.getElementById('loadingOverlay').classList.add('d-none');
                 }
             }
 
@@ -422,122 +511,174 @@
                     return;
                 }
 
+                if (!this.segmenter) {
+                    alert("AI model is still loading. Please wait a moment and try again.");
+                    return;
+                }
+
                 const img = document.getElementById('previewImage');
+                document.getElementById('uploadLoadingOverlay').classList.remove('d-none');
                 
                 try {
-                    const measurements = await this.analyzePose(img, userHeight);
+                    const measurements = await this.analyzeBodySegmentation(img, userHeight);
                     if (measurements) {
                         this.displayMeasurements(measurements);
                         this.currentMeasurement = measurements;
                         
-                        // Show save button
                         document.getElementById('saveMeasurement').classList.remove('d-none');
                     }
                 } catch (error) {
                     alert("Error processing photo: " + error.message);
                     console.error(error);
+                } finally {
+                    document.getElementById('uploadLoadingOverlay').classList.add('d-none');
                 }
             }
 
-            async analyzePose(imageElement, userHeight) {
-                if (!this.detector) {
-                    throw new Error("AI model not loaded yet. Please wait and try again.");
+            async analyzeBodySegmentation(imageElement, userHeight) {
+                if (!this.segmenter) {
+                    throw new Error("Segmentation model not loaded yet. Please wait and try again.");
                 }
 
-                const poses = await this.detector.estimatePoses(imageElement);
+                // Get segmentation
+                const segmentationResult = await this.segmenter.segmentPeople(imageElement);
                 
-                if (!poses || poses.length === 0) {
-                    throw new Error("No pose detected. Please ensure your full upper body is visible.");
+                if (!segmentationResult || segmentationResult.length === 0) {
+                    throw new Error("No person detected in the image. Please ensure you're clearly visible.");
                 }
 
-                const keypoints = poses[0].keypoints;
-                const requiredPoints = ['left_hip', 'right_hip', 'nose', 'left_shoulder', 'right_shoulder'];
-                const points = {};
+                const segmentation = segmentationResult[0];
+                const mask = segmentation.mask;
+                const maskData = await mask.data;
                 
-                for (const pointName of requiredPoints) {
-                    const point = keypoints.find(kp => kp.name === pointName);
-                    if (!point || point.score < 0.5) {
-                        throw new Error(`Could not detect ${pointName} clearly. Please try with better lighting and positioning.`);
+                // Analyze the mask to find measurements
+                const measurements = this.analyzeMask(maskData, mask.width, mask.height, userHeight);
+                
+                // Visualize the segmentation
+                this.visualizeSegmentation(mask, imageElement);
+                
+                return measurements;
+            }
+
+            analyzeMask(maskData, width, height, userHeight) {
+                // Find the person's bounds
+                let minX = width, maxX = 0, minY = height, maxY = 0;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const index = y * width + x;
+                        if (maskData[index] > 128) { // Person pixel
+                            minX = Math.min(minX, x);
+                            maxX = Math.max(maxX, x);
+                            minY = Math.min(minY, y);
+                            maxY = Math.max(maxY, y);
+                        }
                     }
-                    points[pointName] = point;
                 }
 
-                // Draw landmarks if we're using canvas
-                if (imageElement.tagName === 'CANVAS') {
-                    this.drawLandmarks(this.ctx, keypoints);
-                }
+                // Calculate body height in pixels (head to waist area)
+                const bodyHeightPixels = maxY - minY;
+                const cmPerPixel = userHeight / bodyHeightPixels;
 
-                // Calculate measurements
-                const upperBodyPixelHeight = Math.abs(points.nose.y - ((points.left_hip.y + points.right_hip.y) / 2));
-                const cmPerPixel = userHeight / upperBodyPixelHeight;
+                // Find shoulder width (widest point in upper 30% of body)
+                const shoulderRegionHeight = Math.floor(bodyHeightPixels * 0.3);
+                let maxShoulderWidth = 0;
                 
-                const waistWidthCM = Math.abs(points.left_hip.x - points.right_hip.x) * cmPerPixel;
-                const shoulderWidthCM = Math.abs(points.left_shoulder.x - points.right_shoulder.x) * cmPerPixel;
+                for (let y = minY; y < minY + shoulderRegionHeight; y++) {
+                    let leftEdge = width, rightEdge = 0;
+                    
+                    for (let x = minX; x <= maxX; x++) {
+                        const index = y * width + x;
+                        if (maskData[index] > 128) {
+                            leftEdge = Math.min(leftEdge, x);
+                            rightEdge = Math.max(rightEdge, x);
+                        }
+                    }
+                    
+                    if (rightEdge > leftEdge) {
+                        maxShoulderWidth = Math.max(maxShoulderWidth, rightEdge - leftEdge);
+                    }
+                }
+
+                // Find waist width (narrowest point in middle 40% of body)
+                const waistRegionStart = minY + Math.floor(bodyHeightPixels * 0.3);
+                const waistRegionEnd = minY + Math.floor(bodyHeightPixels * 0.7);
+                let minWaistWidth = width;
+                
+                for (let y = waistRegionStart; y < waistRegionEnd; y++) {
+                    let leftEdge = width, rightEdge = 0;
+                    
+                    for (let x = minX; x <= maxX; x++) {
+                        const index = y * width + x;
+                        if (maskData[index] > 128) {
+                            leftEdge = Math.min(leftEdge, x);
+                            rightEdge = Math.max(rightEdge, x);
+                        }
+                    }
+                    
+                    if (rightEdge > leftEdge) {
+                        const currentWidth = rightEdge - leftEdge;
+                        if (currentWidth > 0) {
+                            minWaistWidth = Math.min(minWaistWidth, currentWidth);
+                        }
+                    }
+                }
+
+                // Convert to real-world measurements
+                const shoulderWidthCM = maxShoulderWidth * cmPerPixel;
+                const waistWidthCM = minWaistWidth * cmPerPixel;
 
                 // Validate measurements
-                if (waistWidthCM < 20 || waistWidthCM > 200 || shoulderWidthCM < 20 || shoulderWidthCM > 200) {
-                    throw new Error("The measurements detected seem unrealistic. Please try again with a clearer photo.");
+                if (shoulderWidthCM < 20 || shoulderWidthCM > 200 || waistWidthCM < 15 || waistWidthCM > 200) {
+                    throw new Error("The measurements detected seem unrealistic. Please try again with a clearer photo and better lighting.");
                 }
 
                 return {
                     waist: waistWidthCM.toFixed(2),
                     shoulder: shoulderWidthCM.toFixed(2),
                     date: new Date().toLocaleDateString(),
-                    time: new Date().toLocaleTimeString()
+                    time: new Date().toLocaleTimeString(),
+                    type: 'precision'
                 };
             }
 
-            drawLandmarks(ctx, keypoints) {
-                const points = {};
-                ['left_hip', 'right_hip', 'left_shoulder', 'right_shoulder'].forEach(name => {
-                    points[name] = keypoints.find(kp => kp.name === name);
-                });
-
-                // Draw hip landmarks and line
-                ctx.fillStyle = "rgba(0, 255, 0, 0.9)";
-                ctx.strokeStyle = "rgba(0, 200, 0, 0.9)";
-                ctx.lineWidth = 4;
-
-                ctx.beginPath();
-                ctx.arc(points.left_hip.x, points.left_hip.y, 8, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(points.right_hip.x, points.right_hip.y, 8, 0, 2 * Math.PI);
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.moveTo(points.left_hip.x, points.left_hip.y);
-                ctx.lineTo(points.right_hip.x, points.right_hip.y);
-                ctx.stroke();
-
-                // Draw shoulder landmarks and line
-                ctx.fillStyle = "rgba(0, 0, 255, 0.9)";
-                ctx.strokeStyle = "rgba(0, 0, 200, 0.9)";
-
-                ctx.beginPath();
-                ctx.arc(points.left_shoulder.x, points.left_shoulder.y, 8, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(points.right_shoulder.x, points.right_shoulder.y, 8, 0, 2 * Math.PI);
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.moveTo(points.left_shoulder.x, points.left_shoulder.y);
-                ctx.lineTo(points.right_shoulder.x, points.right_shoulder.y);
-                ctx.stroke();
-
-                // Add labels
-                ctx.fillStyle = "black";
-                ctx.font = "18px Arial";
-                ctx.textAlign = "center";
+            async visualizeSegmentation(mask, originalImage) {
+                const maskCanvas = document.createElement('canvas');
+                const maskCtx = maskCanvas.getContext('2d');
                 
-                const waistMidX = (points.left_hip.x + points.right_hip.x) / 2;
-                const waistMidY = (points.left_hip.y + points.right_hip.y) / 2 - 15;
-                ctx.fillText("Waist", waistMidX, waistMidY);
-
-                const shoulderMidX = (points.left_shoulder.x + points.right_shoulder.x) / 2;
-                const shoulderMidY = (points.left_shoulder.y + points.right_shoulder.y) / 2 - 15;
-                ctx.fillText("Shoulders", shoulderMidX, shoulderMidY);
+                maskCanvas.width = mask.width;
+                maskCanvas.height = mask.height;
+                
+                const maskData = await mask.data;
+                const imageData = maskCtx.createImageData(mask.width, mask.height);
+                
+                // Create colored overlay for person area
+                for (let i = 0; i < maskData.length; i++) {
+                    const pixelIndex = i * 4;
+                    if (maskData[i] > 128) {
+                        imageData.data[pixelIndex] = 40;     // R - green tint
+                        imageData.data[pixelIndex + 1] = 167; // G
+                        imageData.data[pixelIndex + 2] = 69;  // B
+                        imageData.data[pixelIndex + 3] = 100; // A - semi-transparent
+                    } else {
+                        imageData.data[pixelIndex + 3] = 0; // Fully transparent
+                    }
+                }
+                
+                maskCtx.putImageData(imageData, 0, 0);
+                
+                // Draw on segmentation canvas
+                const targetCanvas = document.getElementById('cameraScreen').classList.contains('d-none') ? 
+                    document.getElementById('uploadSegmentationCanvas') : this.segmentationCanvas;
+                
+                if (targetCanvas) {
+                    const targetCtx = targetCanvas.getContext('2d');
+                    targetCanvas.width = originalImage.width || originalImage.videoWidth;
+                    targetCanvas.height = originalImage.height || originalImage.videoHeight;
+                    
+                    targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+                    targetCtx.drawImage(maskCanvas, 0, 0, targetCanvas.width, targetCanvas.height);
+                }
             }
 
             displayMeasurements(measurements) {
@@ -550,7 +691,7 @@
             saveMeasurement() {
                 if (!this.currentMeasurement) return;
 
-                const measurements = JSON.parse(localStorage.getItem('bodyMeasurements') || '[]');
+                const measurements = JSON.parse(localStorage.getItem('precisionBodyMeasurements') || '[]');
                 const newMeasurement = {
                     id: Date.now(),
                     ...this.currentMeasurement
@@ -563,14 +704,14 @@
                     measurements.splice(50);
                 }
                 
-                localStorage.setItem('bodyMeasurements', JSON.stringify(measurements));
+                localStorage.setItem('precisionBodyMeasurements', JSON.stringify(measurements));
                 
-                alert("✅ Measurement saved successfully!");
+                alert("✅ Precision measurement saved successfully!");
                 this.showHistory();
             }
 
             loadHistory() {
-                const measurements = JSON.parse(localStorage.getItem('bodyMeasurements') || '[]');
+                const measurements = JSON.parse(localStorage.getItem('precisionBodyMeasurements') || '[]');
                 return measurements;
             }
 
@@ -579,28 +720,31 @@
                 const historyList = document.getElementById('historyList');
                 
                 if (measurements.length === 0) {
-                    historyList.innerHTML = '<p class="text-center text-muted">No measurements recorded yet</p>';
+                    historyList.innerHTML = '<p class="text-center text-muted">No precision measurements recorded yet</p>';
                     return;
                 }
 
                 const historyHTML = measurements.map((measurement, index) => `
                     <div class="measurement-item">
-                        <div class="row">
+                        <div class="row align-items-center">
                             <div class="col-md-3">
                                 <small class="text-muted">Date</small>
                                 <div>${measurement.date}</div>
                                 <small class="text-muted">${measurement.time}</small>
+                                <div class="mt-1">
+                                    <span class="badge bg-success">Precision AI</span>
+                                </div>
                             </div>
                             <div class="col-md-4">
-                                <small class="text-muted">Shoulder Width</small>
+                                <small class="text-muted">Shoulder Width <small>(edge-to-edge)</small></small>
                                 <div class="fs-5 fw-bold text-success">${measurement.shoulder} cm</div>
                             </div>
                             <div class="col-md-4">
-                                <small class="text-muted">Waist Width</small>
+                                <small class="text-muted">Waist Width <small>(narrowest point)</small></small>
                                 <div class="fs-5 fw-bold text-success">${measurement.waist} cm</div>
                             </div>
                             <div class="col-md-1">
-                                <button class="btn btn-sm btn-outline-danger" onclick="bodyTool.deleteMeasurement(${measurement.id})">
+                                <button class="btn btn-sm btn-outline-danger" onclick="precisionTool.deleteMeasurement(${measurement.id})">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -612,16 +756,16 @@
             }
 
             deleteMeasurement(id) {
-                if (confirm('Are you sure you want to delete this measurement?')) {
+                if (confirm('Are you sure you want to delete this precision measurement?')) {
                     const measurements = this.loadHistory().filter(m => m.id !== id);
-                    localStorage.setItem('bodyMeasurements', JSON.stringify(measurements));
+                    localStorage.setItem('precisionBodyMeasurements', JSON.stringify(measurements));
                     this.displayHistory();
                 }
             }
 
             clearHistory() {
-                if (confirm('Are you sure you want to clear all measurement history?')) {
-                    localStorage.removeItem('bodyMeasurements');
+                if (confirm('Are you sure you want to clear all precision measurement history?')) {
+                    localStorage.removeItem('precisionBodyMeasurements');
                     this.displayHistory();
                 }
             }
@@ -633,6 +777,10 @@
                 }
                 this.stopCamera();
                 document.getElementById('countdown').classList.add('d-none');
+                
+                // Hide loading overlays
+                document.getElementById('loadingOverlay').classList.add('d-none');
+                document.getElementById('uploadLoadingOverlay').classList.add('d-none');
             }
 
             stopCamera() {
@@ -643,10 +791,10 @@
             }
         }
 
-        // Initialize the app
-        let bodyTool;
+        // Initialize the precision measurement tool
+        let precisionTool;
         document.addEventListener('DOMContentLoaded', () => {
-            bodyTool = new BodyMeasurementTool();
+            precisionTool = new PrecisionMeasurementTool();
         });
     </script>
 </body>
