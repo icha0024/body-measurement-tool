@@ -107,8 +107,8 @@
                         <ul class="text-dark">
                             <li><strong>True waist detection:</strong> Finds the actual narrowest point of your torso</li>
                             <li><strong>Body segmentation:</strong> Uses advanced AI to detect your body outline</li>
-                            <li><strong>Upper body positioning:</strong> Your full upper body needs to be in frame</li>
-                            <li><strong>Height reference:</strong> Enter the height of your full body shown in the photo</li>
+                            <li><strong>Upper body positioning:</strong> Only your upper body needs to be in frame (from slightly below waist to top of head)</li>
+                            <li><strong>Height reference:</strong> Enter the height of the body portion visible in your photo</li>
                             <li><strong>Accurate scaling:</strong> Uses the full body outline for precise measurements</li>
                             <li>All processing happens in your browser after initial model download</li>
                         </ul>
@@ -167,10 +167,10 @@
                         </div>
 
                         <div id="heightInput" class="my-4 text-center d-none">
-                            <label for="userHeight" class="form-label fs-5">Enter the height of your full body shown in the photo (cm):</label>
+                            <label for="userHeight" class="form-label fs-5">Enter the height of your upper body shown in the photo (cm):</label>
                             <div class="d-flex justify-content-center">
                                 <input type="number" id="userHeight" class="form-control form-control-lg rounded-pill px-4 mx-auto"
-                                       min="100" max="220" placeholder="e.g. 170" required style="max-width: 200px;">
+                                       min="50" max="250" placeholder="e.g. 85" required style="max-width: 200px;">
                             </div>
                             <button id="processPhoto" class="btn btn-custom mt-3">Analyze Body Shape</button>
                         </div>
@@ -221,7 +221,7 @@
                                 </label>
                                 <input type="file" id="imageUpload" accept="image/*" class="d-none">
                             </div>
-                            <p class="text-muted">Select a photo where your full body is clearly visible against a simple background</p>
+                            <p class="text-muted">Select a photo where your upper body is clearly visible against a simple background</p>
                         </div>
 
                         <div id="uploadPreview" class="text-center d-none">
@@ -230,8 +230,8 @@
                             <canvas id="uploadSegmentationCanvas" class="img-fluid rounded mb-3 d-none" style="max-height: 400px; opacity: 0.7; position: absolute; top: 0; left: 50%; transform: translateX(-50%);"></canvas>
                             
                             <div class="my-3">
-                                <label for="uploadHeight" class="form-label">Height of your full body visible in photo (cm):</label>
-                                <input type="number" id="uploadHeight" class="form-control mx-auto" style="max-width: 200px;" min="100" max="220" placeholder="e.g. 170">
+                                <label for="uploadHeight" class="form-label">Height of upper body visible in photo (cm):</label>
+                                <input type="number" id="uploadHeight" class="form-control mx-auto" style="max-width: 200px;" min="50" max="250" placeholder="e.g. 85">
                             </div>
                             
                             <button id="processUpload" class="btn btn-custom">Analyze Body Shape</button>
@@ -440,8 +440,8 @@
             async processPhoto() {
                 const userHeight = parseFloat(document.getElementById('userHeight').value);
                 
-                if (!userHeight || userHeight < 100 || userHeight > 220) {
-                    alert("Please enter your full body height visible in the photo (between 100cm and 220cm).");
+                if (!userHeight || userHeight < 50 || userHeight > 250) {
+                    alert("Please enter the height of your upper body visible in the photo (between 50cm and 250cm).");
                     return;
                 }
 
@@ -504,8 +504,8 @@
             async processUploadedImage() {
                 const userHeight = parseFloat(document.getElementById('uploadHeight').value);
                 
-                if (!userHeight || userHeight < 100 || userHeight > 220) {
-                    alert("Please enter your full body height visible in the photo (between 100cm and 220cm).");
+                if (!userHeight || userHeight < 50 || userHeight > 250) {
+                    alert("Please enter the height of your upper body visible in the photo (between 50cm and 250cm).");
                     return;
                 }
 
@@ -572,21 +572,22 @@
                     }
                 }
 
-                // Calculate full body height in pixels using the complete mask
-                const fullBodyHeightPixels = maxY - minY;
+                // Calculate upper body height in pixels using the mask
+                const upperBodyHeightPixels = maxY - minY;
                 
-                if (fullBodyHeightPixels === 0) {
+                if (upperBodyHeightPixels === 0) {
                     throw new Error("Could not detect body in the image. Please ensure good lighting and clear visibility.");
                 }
                 
-                const cmPerPixel = userHeight / fullBodyHeightPixels;
+                const cmPerPixel = userHeight / upperBodyHeightPixels;
 
                 // Find waist width (narrowest point in the waist region)
-                // Focus on lower torso area (40-70% down from top of body)
-                const waistRegionStart = minY + Math.floor(fullBodyHeightPixels * 0.4);
-                const waistRegionEnd = minY + Math.floor(fullBodyHeightPixels * 0.7);
+                // Focus on lower torso area (40-70% down from top of visible body)
+                const waistRegionStart = minY + Math.floor(upperBodyHeightPixels * 0.4);
+                const waistRegionEnd = minY + Math.floor(upperBodyHeightPixels * 0.7);
                 let minWaistWidth = width;
                 let waistFound = false;
+                let waistY = waistRegionStart; // Track which line gave us the narrowest measurement
                 
                 for (let y = waistRegionStart; y < waistRegionEnd; y++) {
                     let leftEdge = width, rightEdge = 0;
@@ -601,15 +602,16 @@
                     
                     if (rightEdge > leftEdge) {
                         const currentWidth = rightEdge - leftEdge;
-                        if (currentWidth > 0) {
-                            minWaistWidth = Math.min(minWaistWidth, currentWidth);
+                        if (currentWidth > 0 && currentWidth < minWaistWidth) {
+                            minWaistWidth = currentWidth;
+                            waistY = y; // Remember where the narrowest point was found
                             waistFound = true;
                         }
                     }
                 }
 
                 if (!waistFound) {
-                    throw new Error("Could not detect waist area. Please ensure your full body is visible and well-lit.");
+                    throw new Error("Could not detect waist area. Please ensure your upper body is visible and well-lit.");
                 }
 
                 // Convert to real-world measurements
@@ -620,13 +622,15 @@
                     throw new Error(`Waist measurement seems unrealistic (${waistWidthCM.toFixed(1)}cm). Please check your height input and photo quality.`);
                 }
 
-                console.log(`Body height: ${fullBodyHeightPixels}px, Scale: ${cmPerPixel.toFixed(3)}cm/px, Waist: ${waistWidthCM.toFixed(1)}cm`);
+                console.log(`Upper body height: ${upperBodyHeightPixels}px, Scale: ${cmPerPixel.toFixed(3)}cm/px, Waist: ${waistWidthCM.toFixed(1)}cm`);
 
                 return {
                     waist: waistWidthCM.toFixed(1),
                     date: new Date().toLocaleDateString(),
                     time: new Date().toLocaleTimeString(),
-                    type: 'segmentation'
+                    type: 'segmentation',
+                    waistY: waistY, // Store the Y coordinate for visualization
+                    bounds: { minX, maxX, minY, maxY }
                 };
             }
 
@@ -655,6 +659,24 @@
                 }
                 
                 maskCtx.putImageData(imageData, 0, 0);
+                
+                // Add waist measurement line if we have the measurement data
+                if (this.currentMeasurement && this.currentMeasurement.waistY && this.currentMeasurement.bounds) {
+                    const { waistY, bounds } = this.currentMeasurement;
+                    
+                    maskCtx.strokeStyle = "rgba(255, 0, 0, 0.8)"; // Red line
+                    maskCtx.lineWidth = 3;
+                    maskCtx.beginPath();
+                    maskCtx.moveTo(bounds.minX, waistY);
+                    maskCtx.lineTo(bounds.maxX, waistY);
+                    maskCtx.stroke();
+                    
+                    // Add text label
+                    maskCtx.fillStyle = "red";
+                    maskCtx.font = "16px Arial";
+                    maskCtx.textAlign = "center";
+                    maskCtx.fillText("Waist Measurement", (bounds.minX + bounds.maxX) / 2, waistY - 10);
+                }
                 
                 // Draw on segmentation canvas
                 const targetCanvas = document.getElementById('cameraScreen').classList.contains('d-none') ? 
