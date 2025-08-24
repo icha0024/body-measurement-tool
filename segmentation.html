@@ -91,9 +91,9 @@
         <!-- Home Screen -->
         <div id="homeScreen" class="container">
             <div class="text-center mb-5">
-                <h1 class="display-4 text-white mb-2">Body Measurement Tool</h1>
-                <div class="precision-badge mb-3">Precision Mode</div>
-                <p class="lead text-white">Advanced AI body segmentation for accurate measurements</p>
+                <h1 class="display-4 text-white mb-2">Waist Measurement Tool</h1>
+                <div class="precision-badge mb-3">AI Segmentation</div>
+                <p class="lead text-white">Advanced body segmentation for accurate waist measurements</p>
             </div>
             
             <div class="row justify-content-center">
@@ -103,13 +103,13 @@
                             <img src="measurement-guide.png" alt="Measurement Guide - Shows proper posture for body measurement" class="img-fluid rounded mb-4" style="max-height: 300px;">
                         </div>
 
-                        <h5 class="text-dark mb-3">Precision Measurement Features:</h5>
+                        <h5 class="text-dark mb-3">AI Waist Measurement Features:</h5>
                         <ul class="text-dark">
                             <li><strong>True waist detection:</strong> Finds the actual narrowest point of your torso</li>
-                            <li><strong>Accurate shoulder width:</strong> Measures from outer edge to outer edge</li>
                             <li><strong>Body segmentation:</strong> Uses advanced AI to detect your body outline</li>
-                            <li><strong>Upper body positioning:</strong> Only your upper body needs to be in frame</li>
-                            <li><strong>Height reference:</strong> Enter the height of the body portion visible in your photo</li>
+                            <li><strong>Upper body positioning:</strong> Your full upper body needs to be in frame</li>
+                            <li><strong>Height reference:</strong> Enter the height of your full body shown in the photo</li>
+                            <li><strong>Accurate scaling:</strong> Uses the full body outline for precise measurements</li>
                             <li>All processing happens in your browser after initial model download</li>
                         </ul>
 
@@ -155,8 +155,8 @@
                         </div>
                         
                         <h4 class="text-center mb-4">
-                            Precision Camera Measurement
-                            <span class="precision-badge ms-2">Advanced AI</span>
+                            AI Waist Measurement
+                            <span class="precision-badge ms-2">Segmentation AI</span>
                         </h4>
                         
                         <div class="text-center position-relative">
@@ -167,26 +167,20 @@
                         </div>
 
                         <div id="heightInput" class="my-4 text-center d-none">
-                            <label for="userHeight" class="form-label fs-5">Enter the height of your upper body shown in the photo (cm):</label>
+                            <label for="userHeight" class="form-label fs-5">Enter the height of your full body shown in the photo (cm):</label>
                             <div class="d-flex justify-content-center">
                                 <input type="number" id="userHeight" class="form-control form-control-lg rounded-pill px-4 mx-auto"
-                                       min="50" max="250" placeholder="e.g. 85" required style="max-width: 200px;">
+                                       min="100" max="220" placeholder="e.g. 170" required style="max-width: 200px;">
                             </div>
                             <button id="processPhoto" class="btn btn-custom mt-3">Analyze Body Shape</button>
                         </div>
 
                         <div id="measurementResult" class="mt-4 d-none">
-                            <div class="row">
+                            <div class="row justify-content-center">
                                 <div class="col-md-6">
-                                    <div class="measurement-item">
-                                        <h6>Shoulder Width <small class="text-success">(edge-to-edge)</small></h6>
-                                        <span id="shoulderWidth" class="fs-4 fw-bold text-success">--</span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="measurement-item">
+                                    <div class="measurement-item text-center">
                                         <h6>Waist Width <small class="text-success">(narrowest point)</small></h6>
-                                        <span id="waistWidth" class="fs-4 fw-bold text-success">--</span>
+                                        <span id="waistWidth" class="fs-3 fw-bold text-success">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -216,8 +210,8 @@
                         </div>
 
                         <h4 class="text-center mb-4">
-                            Upload Photo for Precision Measurement
-                            <span class="precision-badge ms-2">Advanced AI</span>
+                            Upload Photo for Waist Measurement
+                            <span class="precision-badge ms-2">Segmentation AI</span>
                         </h4>
                         
                         <div class="text-center">
@@ -227,7 +221,7 @@
                                 </label>
                                 <input type="file" id="imageUpload" accept="image/*" class="d-none">
                             </div>
-                            <p class="text-muted">Select a photo where your upper body is clearly visible against a simple background</p>
+                            <p class="text-muted">Select a photo where your full body is clearly visible against a simple background</p>
                         </div>
 
                         <div id="uploadPreview" class="text-center d-none">
@@ -236,8 +230,8 @@
                             <canvas id="uploadSegmentationCanvas" class="img-fluid rounded mb-3 d-none" style="max-height: 400px; opacity: 0.7; position: absolute; top: 0; left: 50%; transform: translateX(-50%);"></canvas>
                             
                             <div class="my-3">
-                                <label for="uploadHeight" class="form-label">Height of upper body visible in photo (cm):</label>
-                                <input type="number" id="uploadHeight" class="form-control mx-auto" style="max-width: 200px;" min="50" max="250" placeholder="e.g. 85">
+                                <label for="uploadHeight" class="form-label">Height of your full body visible in photo (cm):</label>
+                                <input type="number" id="uploadHeight" class="form-control mx-auto" style="max-width: 200px;" min="100" max="220" placeholder="e.g. 170">
                             </div>
                             
                             <button id="processUpload" class="btn btn-custom">Analyze Body Shape</button>
@@ -254,8 +248,8 @@
                     <div class="measurement-card p-5">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <div>
-                                <h4>Measurement History</h4>
-                                <span class="precision-badge">Precision Measurements</span>
+                                <h4>Waist Measurement History</h4>
+                                <span class="precision-badge">AI Segmentation</span>
                             </div>
                             <button id="clearHistory" class="btn btn-outline-danger">
                                 <i class="fas fa-trash me-2"></i>Clear History
@@ -263,7 +257,7 @@
                         </div>
                         
                         <div id="historyList">
-                            <p class="text-center text-muted">No precision measurements recorded yet</p>
+                            <p class="text-center text-muted">No waist measurements recorded yet</p>
                         </div>
                     </div>
                 </div>
@@ -272,7 +266,7 @@
     </div>
 
     <script>
-        class PrecisionMeasurementTool {
+        class WaistMeasurementTool {
             constructor() {
                 this.segmenter = null;
                 this.video = null;
@@ -446,8 +440,8 @@
             async processPhoto() {
                 const userHeight = parseFloat(document.getElementById('userHeight').value);
                 
-                if (!userHeight || userHeight < 50 || userHeight > 250) {
-                    alert("Please enter the height of your upper body visible in the photo (between 50cm and 250cm).");
+                if (!userHeight || userHeight < 100 || userHeight > 220) {
+                    alert("Please enter your full body height visible in the photo (between 100cm and 220cm).");
                     return;
                 }
 
@@ -510,8 +504,8 @@
             async processUploadedImage() {
                 const userHeight = parseFloat(document.getElementById('uploadHeight').value);
                 
-                if (!userHeight || userHeight < 50 || userHeight > 250) {
-                    alert("Please enter the height of your upper body visible in the photo (between 50cm and 250cm).");
+                if (!userHeight || userHeight < 100 || userHeight > 220) {
+                    alert("Please enter your full body height visible in the photo (between 100cm and 220cm).");
                     return;
                 }
 
@@ -563,7 +557,7 @@
             }
 
             analyzeMask(maskData, width, height, userHeight) {
-                // Find the person's bounds
+                // Find the person's bounds in the mask
                 let minX = width, maxX = 0, minY = height, maxY = 0;
                 
                 for (let y = 0; y < height; y++) {
@@ -578,34 +572,21 @@
                     }
                 }
 
-                // Calculate body height in pixels (head to waist area)
-                const bodyHeightPixels = maxY - minY;
-                const cmPerPixel = userHeight / bodyHeightPixels;
-
-                // Find shoulder width (widest point in upper 30% of body)
-                const shoulderRegionHeight = Math.floor(bodyHeightPixels * 0.3);
-                let maxShoulderWidth = 0;
+                // Calculate full body height in pixels using the complete mask
+                const fullBodyHeightPixels = maxY - minY;
                 
-                for (let y = minY; y < minY + shoulderRegionHeight; y++) {
-                    let leftEdge = width, rightEdge = 0;
-                    
-                    for (let x = minX; x <= maxX; x++) {
-                        const index = y * width + x;
-                        if (maskData[index] === 1) {
-                            leftEdge = Math.min(leftEdge, x);
-                            rightEdge = Math.max(rightEdge, x);
-                        }
-                    }
-                    
-                    if (rightEdge > leftEdge) {
-                        maxShoulderWidth = Math.max(maxShoulderWidth, rightEdge - leftEdge);
-                    }
+                if (fullBodyHeightPixels === 0) {
+                    throw new Error("Could not detect body in the image. Please ensure good lighting and clear visibility.");
                 }
+                
+                const cmPerPixel = userHeight / fullBodyHeightPixels;
 
-                // Find waist width (narrowest point in middle 40% of body)
-                const waistRegionStart = minY + Math.floor(bodyHeightPixels * 0.3);
-                const waistRegionEnd = minY + Math.floor(bodyHeightPixels * 0.7);
+                // Find waist width (narrowest point in the waist region)
+                // Focus on lower torso area (40-70% down from top of body)
+                const waistRegionStart = minY + Math.floor(fullBodyHeightPixels * 0.4);
+                const waistRegionEnd = minY + Math.floor(fullBodyHeightPixels * 0.7);
                 let minWaistWidth = width;
+                let waistFound = false;
                 
                 for (let y = waistRegionStart; y < waistRegionEnd; y++) {
                     let leftEdge = width, rightEdge = 0;
@@ -622,25 +603,30 @@
                         const currentWidth = rightEdge - leftEdge;
                         if (currentWidth > 0) {
                             minWaistWidth = Math.min(minWaistWidth, currentWidth);
+                            waistFound = true;
                         }
                     }
                 }
 
+                if (!waistFound) {
+                    throw new Error("Could not detect waist area. Please ensure your full body is visible and well-lit.");
+                }
+
                 // Convert to real-world measurements
-                const shoulderWidthCM = maxShoulderWidth * cmPerPixel;
                 const waistWidthCM = minWaistWidth * cmPerPixel;
 
                 // Validate measurements
-                if (shoulderWidthCM < 20 || shoulderWidthCM > 200 || waistWidthCM < 15 || waistWidthCM > 200) {
-                    throw new Error("The measurements detected seem unrealistic. Please try again with a clearer photo and better lighting.");
+                if (waistWidthCM < 15 || waistWidthCM > 150) {
+                    throw new Error(`Waist measurement seems unrealistic (${waistWidthCM.toFixed(1)}cm). Please check your height input and photo quality.`);
                 }
 
+                console.log(`Body height: ${fullBodyHeightPixels}px, Scale: ${cmPerPixel.toFixed(3)}cm/px, Waist: ${waistWidthCM.toFixed(1)}cm`);
+
                 return {
-                    waist: waistWidthCM.toFixed(2),
-                    shoulder: shoulderWidthCM.toFixed(2),
+                    waist: waistWidthCM.toFixed(1),
                     date: new Date().toLocaleDateString(),
                     time: new Date().toLocaleTimeString(),
-                    type: 'precision'
+                    type: 'segmentation'
                 };
             }
 
@@ -685,7 +671,6 @@
             }
 
             displayMeasurements(measurements) {
-                document.getElementById('shoulderWidth').textContent = measurements.shoulder + ' cm';
                 document.getElementById('waistWidth').textContent = measurements.waist + ' cm';
                 document.getElementById('measurementResult').classList.remove('d-none');
                 document.getElementById('saveMeasurement').classList.remove('d-none');
@@ -694,7 +679,7 @@
             saveMeasurement() {
                 if (!this.currentMeasurement) return;
 
-                const measurements = JSON.parse(localStorage.getItem('precisionBodyMeasurements') || '[]');
+                const measurements = JSON.parse(localStorage.getItem('waistMeasurements') || '[]');
                 const newMeasurement = {
                     id: Date.now(),
                     ...this.currentMeasurement
@@ -707,14 +692,14 @@
                     measurements.splice(50);
                 }
                 
-                localStorage.setItem('precisionBodyMeasurements', JSON.stringify(measurements));
+                localStorage.setItem('waistMeasurements', JSON.stringify(measurements));
                 
-                alert("✅ Precision measurement saved successfully!");
+                alert("✅ Waist measurement saved successfully!");
                 this.showHistory();
             }
 
             loadHistory() {
-                const measurements = JSON.parse(localStorage.getItem('precisionBodyMeasurements') || '[]');
+                const measurements = JSON.parse(localStorage.getItem('waistMeasurements') || '[]');
                 return measurements;
             }
 
@@ -723,31 +708,27 @@
                 const historyList = document.getElementById('historyList');
                 
                 if (measurements.length === 0) {
-                    historyList.innerHTML = '<p class="text-center text-muted">No precision measurements recorded yet</p>';
+                    historyList.innerHTML = '<p class="text-center text-muted">No waist measurements recorded yet</p>';
                     return;
                 }
 
                 const historyHTML = measurements.map((measurement, index) => `
                     <div class="measurement-item">
                         <div class="row align-items-center">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <small class="text-muted">Date</small>
                                 <div>${measurement.date}</div>
                                 <small class="text-muted">${measurement.time}</small>
                                 <div class="mt-1">
-                                    <span class="badge bg-success">Precision AI</span>
+                                    <span class="badge bg-success">AI Segmentation</span>
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <small class="text-muted">Shoulder Width <small>(edge-to-edge)</small></small>
-                                <div class="fs-5 fw-bold text-success">${measurement.shoulder} cm</div>
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <small class="text-muted">Waist Width <small>(narrowest point)</small></small>
-                                <div class="fs-5 fw-bold text-success">${measurement.waist} cm</div>
+                                <div class="fs-4 fw-bold text-success">${measurement.waist} cm</div>
                             </div>
-                            <div class="col-md-1">
-                                <button class="btn btn-sm btn-outline-danger" onclick="precisionTool.deleteMeasurement(${measurement.id})">
+                            <div class="col-md-2">
+                                <button class="btn btn-sm btn-outline-danger" onclick="waistTool.deleteMeasurement(${measurement.id})">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -759,16 +740,16 @@
             }
 
             deleteMeasurement(id) {
-                if (confirm('Are you sure you want to delete this precision measurement?')) {
+                if (confirm('Are you sure you want to delete this waist measurement?')) {
                     const measurements = this.loadHistory().filter(m => m.id !== id);
-                    localStorage.setItem('precisionBodyMeasurements', JSON.stringify(measurements));
+                    localStorage.setItem('waistMeasurements', JSON.stringify(measurements));
                     this.displayHistory();
                 }
             }
 
             clearHistory() {
-                if (confirm('Are you sure you want to clear all precision measurement history?')) {
-                    localStorage.removeItem('precisionBodyMeasurements');
+                if (confirm('Are you sure you want to clear all waist measurement history?')) {
+                    localStorage.removeItem('waistMeasurements');
                     this.displayHistory();
                 }
             }
@@ -794,10 +775,10 @@
             }
         }
 
-        // Initialize the precision measurement tool
-        let precisionTool;
+        // Initialize the waist measurement tool
+        let waistTool;
         document.addEventListener('DOMContentLoaded', () => {
-            precisionTool = new PrecisionMeasurementTool();
+            waistTool = new WaistMeasurementTool();
         });
     </script>
 </body>
