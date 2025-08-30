@@ -169,14 +169,38 @@
                         </div>
 
                         <div id="uploadPreview" class="text-center d-none">
-                            <img id="previewImage" class="img-fluid rounded mb-3" style="max-height: 400px;">
+                            <canvas id="uploadCanvas" class="img-fluid rounded mb-3" style="max-height: 400px;"></canvas>
                             
-                            <div class="my-3">
-                                <label for="uploadHeight" class="form-label">Height of upper body visible in photo (cm):</label>
-                                <input type="number" id="uploadHeight" class="form-control mx-auto" style="max-width: 200px;" min="50" max="250" placeholder="e.g. 85">
+                            <div id="uploadHeightInput" class="my-4 text-center d-none">
+                                <label for="uploadHeight" class="form-label fs-5">Enter the height of your upper body shown in the photo (cm):</label>
+                                <div class="d-flex justify-content-center">
+                                    <input type="number" id="uploadHeight" class="form-control form-control-lg rounded-pill px-4 mx-auto"
+                                           min="50" max="250" placeholder="e.g. 85" required style="max-width: 200px;">
+                                </div>
+                                <button id="processUpload" class="btn btn-custom mt-3">Process Measurement</button>
                             </div>
-                            
-                            <button id="processUpload" class="btn btn-custom">Process Photo</button>
+
+                            <div id="uploadMeasurementResult" class="mt-4 d-none">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="measurement-item">
+                                            <h6>Shoulder Width</h6>
+                                            <span id="uploadShoulderWidth" class="fs-4 fw-bold text-success">--</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="measurement-item">
+                                            <h6>Waist Width</h6>
+                                            <span id="uploadWaistWidth" class="fs-4 fw-bold text-success">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button id="retakeUpload" class="btn btn-secondary">Choose Different Image</button>
+                                <button id="saveUploadMeasurement" class="btn btn-success d-none">Save Measurement</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -242,7 +266,16 @@
 
                 // Upload functionality
                 document.getElementById('imageUpload').addEventListener('change', (e) => this.handleImageUpload(e));
-                document.getElementById('processUpload').addEventListener('click', () => this.processUploadedImage());
+                document.getElementById('retakeUpload').addEventListener('click', () => this.retakeUpload());
+                document.getElementById('saveUploadMeasurement').addEventListener('click', () => this.saveMeasurement());
+                
+                // Use event delegation for processUpload button
+                document.addEventListener('click', (e) => {
+                    if (e.target && e.target.id === 'processUpload') {
+                        e.preventDefault();
+                        this.processUploadedImage();
+                    }
+                });
 
                 // History
                 document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
@@ -336,7 +369,6 @@
                 this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
                 
                 // Set canvas CSS size to match aspect ratio
-                const aspectRatio = this.video.videoWidth / this.video.videoHeight;
                 this.canvas.style.width = '100%';
                 this.canvas.style.height = 'auto';
                 this.canvas.style.maxHeight = '70vh';
@@ -407,8 +439,20 @@
                             return;
                         }
                         
-                        document.getElementById('previewImage').src = e.target.result;
+                        // Draw image to canvas immediately, just like camera does
+                        const canvas = document.getElementById('uploadCanvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Store the image data like camera version
+                        this.uploadImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        
+                        // Show the canvas and height input
                         document.getElementById('uploadPreview').classList.remove('d-none');
+                        document.getElementById('uploadHeightInput').classList.remove('d-none');
                     };
                     img.src = e.target.result;
                 };
@@ -416,6 +460,8 @@
             }
 
             async processUploadedImage() {
+                console.log("processUploadedImage called");
+                
                 const userHeight = parseFloat(document.getElementById('uploadHeight').value);
                 
                 if (!userHeight || userHeight < 50 || userHeight > 250) {
@@ -423,21 +469,50 @@
                     return;
                 }
 
-                const img = document.getElementById('previewImage');
+                if (!this.detector) {
+                    alert("AI model not loaded yet. Please wait and try again.");
+                    return;
+                }
+
+                const canvas = document.getElementById('uploadCanvas');
+                
+                document.getElementById('uploadHeightInput').classList.add('d-none');
                 
                 try {
-                    const measurements = await this.analyzePose(img, userHeight);
+                    // Use exact same process as camera version
+                    const measurements = await this.analyzePose(canvas, userHeight);
                     if (measurements) {
-                        this.displayMeasurements(measurements);
+                        this.displayUploadMeasurements(measurements);
                         this.currentMeasurement = measurements;
-                        
-                        // Show save button
-                        document.getElementById('saveMeasurement').classList.remove('d-none');
                     }
                 } catch (error) {
+                    console.error("Upload processing error:", error);
                     alert("Error processing photo: " + error.message);
-                    console.error(error);
                 }
+            }
+
+            displayUploadMeasurements(measurements) {
+                document.getElementById('uploadShoulderWidth').textContent = measurements.shoulder + ' cm';
+                document.getElementById('uploadWaistWidth').textContent = measurements.waist + ' cm';
+                document.getElementById('uploadMeasurementResult').classList.remove('d-none');
+                document.getElementById('saveUploadMeasurement').classList.remove('d-none');
+            }
+
+            retakeUpload() {
+                // Reset upload UI
+                document.getElementById('uploadPreview').classList.add('d-none');
+                document.getElementById('uploadHeightInput').classList.add('d-none');
+                document.getElementById('uploadMeasurementResult').classList.add('d-none');
+                document.getElementById('saveUploadMeasurement').classList.add('d-none');
+                document.getElementById('uploadHeight').value = '';
+                
+                // Clear file input
+                document.getElementById('imageUpload').value = '';
+                
+                // Clear canvas
+                const canvas = document.getElementById('uploadCanvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
 
             async analyzePose(imageElement, userHeight) {
@@ -445,11 +520,15 @@
                     throw new Error("AI model not loaded yet. Please wait and try again.");
                 }
 
+                console.log("Starting pose analysis...");
+                
                 const poses = await this.detector.estimatePoses(imageElement);
                 
                 if (!poses || poses.length === 0) {
                     throw new Error("No pose detected. Please ensure your full upper body is visible.");
                 }
+
+                console.log("Poses detected:", poses.length);
 
                 const keypoints = poses[0].keypoints;
                 const requiredPoints = ['left_hip', 'right_hip', 'nose', 'left_shoulder', 'right_shoulder'];
@@ -463,9 +542,17 @@
                     points[pointName] = point;
                 }
 
-                // Draw landmarks if we're using canvas
+                console.log("All required keypoints found");
+
+                // For canvas elements, draw landmarks directly on the canvas context
                 if (imageElement.tagName === 'CANVAS') {
-                    this.drawLandmarks(this.ctx, keypoints);
+                    // Use the appropriate canvas context
+                    if (imageElement.id === 'canvas') {
+                        this.drawLandmarks(this.ctx, keypoints);
+                    } else if (imageElement.id === 'uploadCanvas') {
+                        const uploadCtx = imageElement.getContext('2d');
+                        this.drawLandmarks(uploadCtx, keypoints);
+                    }
                 }
 
                 // Calculate measurements
@@ -474,6 +561,8 @@
                 
                 const waistWidthCM = Math.abs(points.left_hip.x - points.right_hip.x) * cmPerPixel;
                 const shoulderWidthCM = Math.abs(points.left_shoulder.x - points.right_shoulder.x) * cmPerPixel;
+
+                console.log("Measurements calculated:", { shoulderWidthCM, waistWidthCM });
 
                 // Validate measurements
                 if (waistWidthCM < 20 || waistWidthCM > 200 || shoulderWidthCM < 20 || shoulderWidthCM > 200) {
@@ -486,6 +575,39 @@
                     date: new Date().toLocaleDateString(),
                     time: new Date().toLocaleTimeString()
                 };
+            }
+
+            drawLandmarksOnUploadedImage(imgElement, keypoints) {
+                // Instead of overlay, draw image onto a canvas like the PHP version does
+                const container = document.getElementById('uploadPreview');
+                
+                // Hide the img element
+                imgElement.style.display = 'none';
+                
+                // Create or get the canvas for upload
+                let uploadCanvas = container.querySelector('#uploadCanvas');
+                if (!uploadCanvas) {
+                    uploadCanvas = document.createElement('canvas');
+                    uploadCanvas.id = 'uploadCanvas';
+                    uploadCanvas.className = 'img-fluid rounded mb-3';
+                    uploadCanvas.style.maxHeight = '400px';
+                    container.appendChild(uploadCanvas);
+                }
+                
+                // Set canvas dimensions to match the original image
+                uploadCanvas.width = imgElement.naturalWidth;
+                uploadCanvas.height = imgElement.naturalHeight;
+                
+                const uploadCtx = uploadCanvas.getContext('2d');
+                
+                // First draw the image onto the canvas
+                uploadCtx.drawImage(imgElement, 0, 0);
+                
+                // Then draw landmarks on top, exactly like the PHP version
+                this.drawLandmarks(uploadCtx, keypoints);
+                
+                // Show the canvas
+                uploadCanvas.style.display = 'block';
             }
 
             drawLandmarks(ctx, keypoints) {
@@ -566,7 +688,7 @@
                 
                 localStorage.setItem('bodyMeasurements', JSON.stringify(measurements));
                 
-                alert("✅ Measurement saved successfully!");
+                alert("Measurement saved successfully!");
                 this.showHistory();
             }
 
